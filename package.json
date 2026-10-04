@@ -1,11 +1,11 @@
 {
   "name": "rabbit-hole",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "A finite nightly learning feed with ordered tracks and progress-aware recommendations.",
+  "description": "A finite nightly learning feed with ordered tracks, progress-aware recommendations, and optional AI reranking.",
   "type": "module",
   "engines": { "node": ">=20" },
-  "scripts": { "start": "node server2.js" },
+  "scripts": { "start": "node server3.js" },
   "dependencies": {
     "express": "^5.1.0",
     "pg": "^8.16.3"
