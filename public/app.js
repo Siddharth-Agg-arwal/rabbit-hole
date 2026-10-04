@@ -1,137 +1,30 @@
-const state = { topics: [], channels: [], activeTopic: '', pick: null };
+const state={topics:[],channels:[],activeTopic:'',pick:null,progress:{active:[],completed:0}};
+const $=id=>document.getElementById(id),topicGrid=$('topicGrid'),channelGrid=$('channelGrid'),topicTemplate=$('topicTemplate'),channelTemplate=$('channelTemplate');
+function dateKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function prettyDate(){return new Intl.DateTimeFormat('en-IN',{weekday:'short',day:'2-digit',month:'short'}).format(new Date()).toUpperCase();}
+async function api(path,options){const r=await fetch(path,options);if(!r.ok){const b=await r.json().catch(()=>({}));throw new Error(b.error||'Something went wrong.');}return r.json();}
+function dots(n){return `${'●'.repeat(n)}${'○'.repeat(5-n)}`;}
 
-const $ = (id) => document.getElementById(id);
-const topicGrid = $('topicGrid');
-const channelGrid = $('channelGrid');
-const topicTemplate = $('topicTemplate');
-const channelTemplate = $('channelTemplate');
-
-function localDateKey(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+function installProgressUi(){
+  const style=document.createElement('style');style.textContent=`
+    .progress-section{padding:10px 0 40px}.progress-list{border-top:1px solid var(--ink)}
+    .progress-row{display:grid;grid-template-columns:1fr 220px;gap:30px;align-items:center;padding:20px 0;border-bottom:1px solid var(--line)}
+    .progress-row h3{margin:6px 0 0;font-size:23px;letter-spacing:-.035em;font-weight:550}.progress-topic{font-size:8px;color:var(--muted);text-transform:uppercase}
+    .progress-stat{display:grid;grid-template-columns:42px 1fr;align-items:center;gap:12px;font-size:9px}.progress-bar{height:3px;background:var(--soft);overflow:hidden}.progress-bar span{display:block;height:100%;background:var(--ink)}
+    .done-button{margin-top:10px;background:transparent;color:var(--ink);border:1px solid var(--ink);padding:11px 14px;cursor:pointer;font-size:10px}.done-button:disabled{opacity:.5;cursor:default}
+    @media(max-width:800px){.progress-row{grid-template-columns:1fr;gap:14px}}
+  `;document.head.appendChild(style);
+  const done=document.createElement('button');done.id='doneBtn';done.className='done-button hidden';done.textContent='Mark watched ✓';$('chosenCard').insertAdjacentElement('afterend',done);done.addEventListener('click',markComplete);
+  const section=document.createElement('section');section.id='progressSection';section.className='progress-section hidden';section.innerHTML=`<div class="section-head"><div><span class="mono label">KEEP YOUR PLACE</span><h2>In progress.</h2></div><span class="mono muted" id="completedCount"></span></div><div class="progress-list" id="progressList"></div>`;document.querySelector('.topics').insertAdjacentElement('beforebegin',section);
 }
-
-function prettyDate() {
-  return new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: '2-digit', month: 'short' }).format(new Date()).toUpperCase();
-}
-
-async function api(path, options) {
-  const response = await fetch(path, options);
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || 'Something went wrong.');
-  }
-  return response.json();
-}
-
-function hookDots(score) {
-  return `${'●'.repeat(score)}${'○'.repeat(5 - score)}`;
-}
-
-function renderTopics() {
-  topicGrid.innerHTML = '';
-  state.topics.forEach((topic) => {
-    const node = topicTemplate.content.firstElementChild.cloneNode(true);
-    node.querySelector('.topic-number').textContent = topic.glyph;
-    node.querySelector('h3').textContent = topic.topic;
-    node.querySelector('.topic-kicker').textContent = topic.kicker;
-    node.querySelector('.topic-count').textContent = `${topic.count} CHANNEL${topic.count === 1 ? '' : 'S'}`;
-    node.classList.toggle('active', state.activeTopic === topic.topic);
-    node.addEventListener('click', () => selectTopic(topic.topic));
-    topicGrid.appendChild(node);
-  });
-}
-
-function renderChannels() {
-  channelGrid.innerHTML = '';
-  const channels = state.activeTopic ? state.channels.filter(c => c.topic === state.activeTopic) : state.channels;
-  $('feedCount').textContent = `${String(channels.length).padStart(2, '0')} CHANNELS`;
-  $('feedTitle').textContent = state.activeTopic || 'Worth your attention.';
-  $('feedKicker').textContent = state.activeTopic ? 'TONIGHT’S LANE' : 'THE FEED';
-
-  channels.forEach(channel => {
-    const node = channelTemplate.content.firstElementChild.cloneNode(true);
-    node.href = channel.url;
-    node.querySelector('.card-topic').textContent = channel.topic;
-    node.querySelector('h3').textContent = channel.name;
-    node.querySelector('.channel-handle').textContent = channel.handle;
-    node.querySelector('.description').textContent = channel.description;
-    node.querySelector('.vibe').textContent = channel.vibe;
-    node.querySelector('.hook').textContent = hookDots(channel.hook);
-    channelGrid.appendChild(node);
-  });
-}
-
-function renderPick() {
-  if (!state.pick) return;
-  state.activeTopic = state.pick.topic;
-  const meta = state.topics.find(t => t.topic === state.pick.topic);
-  $('pickTitle').textContent = state.pick.topic;
-  $('pickDescription').textContent = meta?.kicker || 'Tonight’s rabbit hole.';
-  $('pickBtn').querySelector('span:first-child').textContent = 'Keep tonight’s pick';
-  $('rerollBtn').classList.remove('hidden');
-
-  const card = $('chosenCard');
-  card.href = state.pick.channel.url;
-  $('chosenTopic').textContent = `START HERE / ${state.pick.topic.toUpperCase()}`;
-  $('chosenName').textContent = state.pick.channel.name;
-  $('chosenVibe').textContent = state.pick.channel.vibe;
-  card.classList.remove('hidden');
-  renderTopics();
-  renderChannels();
-}
-
-function selectTopic(topic) {
-  state.activeTopic = state.activeTopic === topic ? '' : topic;
-  renderTopics();
-  renderChannels();
-  document.querySelector('.feed').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-async function chooseTonight(reroll = false) {
-  const button = reroll ? $('rerollBtn') : $('pickBtn');
-  button.disabled = true;
-  try {
-    state.pick = await api('/api/pick', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: localDateKey(), reroll })
-    });
-    renderPick();
-  } catch (error) {
-    $('pickDescription').textContent = error.message;
-  } finally {
-    button.disabled = false;
-  }
-}
-
-async function init() {
-  $('todayLabel').textContent = prettyDate();
-  try {
-    const [topics, channels, pick] = await Promise.all([
-      api('/api/topics'),
-      api('/api/channels'),
-      api(`/api/today?date=${localDateKey()}`)
-    ]);
-    state.topics = topics;
-    state.channels = channels;
-    state.pick = pick;
-    renderTopics();
-    renderChannels();
-    if (pick) renderPick();
-  } catch (error) {
-    $('pickDescription').textContent = `Could not load the feed: ${error.message}`;
-  }
-}
-
-$('pickBtn').addEventListener('click', () => chooseTonight(false));
-$('rerollBtn').addEventListener('click', () => chooseTonight(true));
-$('showAllBtn').addEventListener('click', () => {
-  state.activeTopic = '';
-  renderTopics();
-  renderChannels();
-});
-
-init();
+function renderTopics(){topicGrid.innerHTML='';state.topics.forEach(t=>{const n=topicTemplate.content.firstElementChild.cloneNode(true);n.querySelector('.topic-number').textContent=t.glyph;n.querySelector('h3').textContent=t.topic;n.querySelector('.topic-kicker').textContent=t.kicker;n.querySelector('.topic-count').textContent=`${t.count} CHANNEL${t.count===1?'':'S'}`;n.classList.toggle('active',state.activeTopic===t.topic);n.addEventListener('click',()=>selectTopic(t.topic));topicGrid.appendChild(n);});}
+function renderChannels(){channelGrid.innerHTML='';const list=state.activeTopic?state.channels.filter(c=>c.topic===state.activeTopic):state.channels;$('feedCount').textContent=`${String(list.length).padStart(2,'0')} CHANNELS`;$('feedTitle').textContent=state.activeTopic||'Worth your attention.';$('feedKicker').textContent=state.activeTopic?'TONIGHT’S LANE':'THE FEED';list.forEach(c=>{const n=channelTemplate.content.firstElementChild.cloneNode(true);n.href=c.url;n.querySelector('.card-topic').textContent=c.topic;n.querySelector('h3').textContent=c.name;n.querySelector('.channel-handle').textContent=c.handle;n.querySelector('.description').textContent=c.description;n.querySelector('.vibe').textContent=c.vibe;n.querySelector('.hook').textContent=dots(c.hook);channelGrid.appendChild(n);});}
+function renderPick(){if(!state.pick)return;state.activeTopic=state.pick.topic;const i=state.pick.item,m=state.topics.find(t=>t.topic===state.pick.topic);$('pickTitle').textContent=state.pick.topic;$('pickDescription').textContent=i?`${state.pick.reason}. Your queue will not skip prerequisites or series order.`:`${m?.kicker||'Tonight’s rabbit hole.'} This is a discovery pick; ordered video metadata is not curated for this channel yet.`;$('pickBtn').querySelector('span:first-child').textContent='Keep tonight’s pick';$('rerollBtn').classList.remove('hidden');const card=$('chosenCard');card.href=i?.url||state.pick.channel.url;$('chosenTopic').textContent=`${state.pick.reason||'START HERE'} / ${state.pick.topic.toUpperCase()}`;$('chosenName').textContent=i?.title||state.pick.channel.name;const series=i?.series?` · ${i.series}${i.order&&i.seriesSize?` · ${i.order}/${i.seriesSize}`:''}`:'';$('chosenVibe').textContent=(i?.description||state.pick.channel.vibe)+series;card.onclick=i?()=>markStarted(i.id):null;card.classList.remove('hidden');const done=$('doneBtn');if(i){done.classList.remove('hidden');done.disabled=i.status==='completed';done.textContent=i.status==='completed'?'Watched ✓':'Mark watched ✓';}else done.classList.add('hidden');renderTopics();renderChannels();}
+function renderProgress(){const sec=$('progressSection'),list=$('progressList');list.innerHTML='';$('completedCount').textContent=`${state.progress.completed||0} WATCHED`;if(!state.progress.active?.length){sec.classList.add('hidden');return;}sec.classList.remove('hidden');state.progress.active.forEach(t=>{const d=document.createElement('div');d.className='progress-row';const done=+t.completed||0,total=+t.total||0,pct=total?Math.round(done/total*100):0;d.innerHTML=`<div><span class="mono progress-topic">${t.channel} / ${t.topic}</span><h3>${t.title}</h3></div><div class="progress-stat"><span class="mono">${done}/${total}</span><div class="progress-bar"><span style="width:${pct}%"></span></div></div>`;list.appendChild(d);});}
+function selectTopic(t){state.activeTopic=state.activeTopic===t?'':t;renderTopics();renderChannels();document.querySelector('.feed').scrollIntoView({behavior:'smooth',block:'start'});}
+async function refreshProgress(){try{state.progress=await api('/api/progress');renderProgress();}catch{}}
+async function markStarted(id){try{await api(`/api/items/${id}/start`,{method:'POST'});if(state.pick?.item?.id===id&&state.pick.item.status!=='completed')state.pick.item.status='in_progress';await refreshProgress();}catch{}}
+async function markComplete(){const i=state.pick?.item;if(!i)return;const b=$('doneBtn');b.disabled=true;try{await api(`/api/items/${i.id}/complete`,{method:'POST'});i.status='completed';b.textContent='Watched ✓';$('pickDescription').textContent='Saved. If this is a series, the next incomplete episode becomes the priority next time.';await refreshProgress();}catch(e){b.disabled=false;b.textContent=e.message;}}
+async function choose(reroll=false){const b=reroll?$('rerollBtn'):$('pickBtn');b.disabled=true;try{state.pick=await api('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:dateKey(),reroll})});renderPick();await refreshProgress();}catch(e){$('pickDescription').textContent=e.message;}finally{b.disabled=false;}}
+async function init(){$('todayLabel').textContent=prettyDate();installProgressUi();try{const [topics,channels,pick,progress]=await Promise.all([api('/api/topics'),api('/api/channels'),api(`/api/today?date=${dateKey()}`),api('/api/progress')]);Object.assign(state,{topics,channels,pick,progress});renderTopics();renderChannels();renderProgress();if(pick)renderPick();}catch(e){$('pickDescription').textContent=`Could not load the feed: ${e.message}`;}}
+$('pickBtn').addEventListener('click',()=>choose(false));$('rerollBtn').addEventListener('click',()=>choose(true));$('showAllBtn').addEventListener('click',()=>{state.activeTopic='';renderTopics();renderChannels();});init();
