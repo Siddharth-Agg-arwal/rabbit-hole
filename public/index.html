@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f2efe8" />
+  <meta name="description" content="A finite nightly learning feed." />
+  <title>Nightly Knowledge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="noise"></div>
+  <main>
+    <nav class="topbar">
+      <a class="brand" href="#">NIGHTLY<span>KNOWLEDGE</span></a>
+      <div class="nav-right">
+        <span id="todayLabel" class="mono muted"></span>
+        <span class="status-dot" title="Finite feed. No infinite scroll."></span>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="eyebrow mono">ONE INTERESTING THING / EVERY NIGHT</div>
+      <h1>Trade the scroll<br>for a <em>rabbit hole.</em></h1>
+      <p class="lede">A deliberately finite feed of channels worth your attention. Pick a topic, watch one thing, go to bed smarter.</p>
+
+      <div class="picker-shell" id="pickerShell">
+        <div class="picker-copy">
+          <span class="mono label">TONIGHT'S MODE</span>
+          <h2 id="pickTitle">No topic chosen yet.</h2>
+          <p id="pickDescription">Let chance decide what you learn tonight. Your pick sticks for the day unless you deliberately reroll it.</p>
+        </div>
+        <div class="picker-actions">
+          <button class="primary" id="pickBtn">
+            <span>Pick my rabbit hole</span>
+            <span class="arrow">↗</span>
+          </button>
+          <button class="ghost hidden" id="rerollBtn">Reroll</button>
+        </div>
+      </div>
+
+      <a class="chosen-card hidden" id="chosenCard" target="_blank" rel="noopener noreferrer">
+        <div>
+          <span class="mono chosen-topic" id="chosenTopic"></span>
+          <h3 id="chosenName"></h3>
+          <p id="chosenVibe"></p>
+        </div>
+        <div class="watch-mark">WATCH <span>↗</span></div>
+      </a>
+    </section>
+
+    <section class="topics" aria-label="Topics">
+      <div class="section-head">
+        <div>
+          <span class="mono label">CHOOSE YOUR OWN</span>
+          <h2>Six ways to get curious.</h2>
+        </div>
+        <button id="showAllBtn" class="text-button">Show everything</button>
+      </div>
+      <div id="topicGrid" class="topic-grid"></div>
+    </section>
+
+    <section class="feed">
+      <div class="section-head feed-head">
+        <div>
+          <span class="mono label" id="feedKicker">THE FEED</span>
+          <h2 id="feedTitle">Worth your attention.</h2>
+        </div>
+        <span class="mono muted" id="feedCount"></span>
+      </div>
+      <div id="channelGrid" class="channel-grid"></div>
+    </section>
+
+    <footer>
+      <span>NIGHTLY KNOWLEDGE</span>
+      <p>Finite by design. Pick one. Learn something. Leave.</p>
+    </footer>
+  </main>
+
+  <template id="topicTemplate">
+    <button class="topic-card">
+      <div class="topic-top"><span class="mono topic-number"></span><span class="topic-arrow">↗</span></div>
+      <h3></h3>
+      <p class="mono topic-kicker"></p>
+      <span class="mono topic-count"></span>
+    </button>
+  </template>
+
+  <template id="channelTemplate">
+    <a class="channel-card" target="_blank" rel="noopener noreferrer">
+      <div class="card-top">
+        <span class="mono card-topic"></span>
+        <span class="open-arrow">↗</span>
+      </div>
+      <div class="channel-main">
+        <h3></h3>
+        <span class="mono channel-handle"></span>
+        <p class="description"></p>
+      </div>
+      <div class="card-bottom">
+        <span class="vibe"></span>
+        <span class="hook"></span>
+      </div>
+    </a>
+  </template>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
