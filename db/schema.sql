@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS channels (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  handle TEXT,
+  url TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  description TEXT NOT NULL,
+  vibe TEXT NOT NULL,
+  hook SMALLINT NOT NULL CHECK (hook BETWEEN 1 AND 5),
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS daily_picks (
+  pick_date DATE PRIMARY KEY,
+  topic TEXT NOT NULL,
+  channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS channels_topic_idx ON channels(topic);
