@@ -4,6 +4,7 @@ function dateKey(d=new Date()){return `${d.getFullYear()}-${String(d.getMonth()+
 function prettyDate(){return new Intl.DateTimeFormat('en-IN',{weekday:'short',day:'2-digit',month:'short'}).format(new Date()).toUpperCase();}
 async function api(path,options){const r=await fetch(path,options);if(!r.ok){const b=await r.json().catch(()=>({}));throw new Error(b.error||'Something went wrong.');}return r.json();}
 function dots(n){return `${'●'.repeat(n)}${'○'.repeat(5-n)}`;}
+function differentTopic(){const current=state.pick?.topic||'';const options=state.topics.map(t=>t.topic).filter(t=>t!==current);return options.length?options[Math.floor(Math.random()*options.length)]:'';}
 
 function installProgressUi(){
   const style=document.createElement('style');style.textContent=`
@@ -25,6 +26,6 @@ function selectTopic(t){state.activeTopic=state.activeTopic===t?'':t;renderTopic
 async function refreshProgress(){try{state.progress=await api('/api/progress');renderProgress();}catch{}}
 async function markStarted(id){try{await api(`/api/items/${id}/start`,{method:'POST'});if(state.pick?.item?.id===id&&state.pick.item.status!=='completed')state.pick.item.status='in_progress';await refreshProgress();}catch{}}
 async function markComplete(){const i=state.pick?.item;if(!i)return;const b=$('doneBtn');b.disabled=true;try{await api(`/api/items/${i.id}/complete`,{method:'POST'});i.status='completed';b.textContent='Watched ✓';$('pickDescription').textContent='Saved. If this is a series, the next incomplete episode becomes the priority next time.';await refreshProgress();}catch(e){b.disabled=false;b.textContent=e.message;}}
-async function choose(reroll=false){const b=reroll?$('rerollBtn'):$('pickBtn');b.disabled=true;try{state.pick=await api('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:dateKey(),reroll})});renderPick();await refreshProgress();}catch(e){$('pickDescription').textContent=e.message;}finally{b.disabled=false;}}
+async function choose(reroll=false){const b=reroll?$('rerollBtn'):$('pickBtn');b.disabled=true;try{const payload={date:dateKey(),reroll};if(reroll){const topic=differentTopic();if(topic)payload.topic=topic;}state.pick=await api('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});renderPick();await refreshProgress();}catch(e){$('pickDescription').textContent=e.message;}finally{b.disabled=false;}}
 async function init(){$('todayLabel').textContent=prettyDate();installProgressUi();try{const [topics,channels,pick,progress]=await Promise.all([api('/api/topics'),api('/api/channels'),api(`/api/today?date=${dateKey()}`),api('/api/progress')]);Object.assign(state,{topics,channels,pick,progress});renderTopics();renderChannels();renderProgress();if(pick)renderPick();}catch(e){$('pickDescription').textContent=`Could not load the feed: ${e.message}`;}}
 $('pickBtn').addEventListener('click',()=>choose(false));$('rerollBtn').addEventListener('click',()=>choose(true));$('showAllBtn').addEventListener('click',()=>{state.activeTopic='';renderTopics();renderChannels();});init();
