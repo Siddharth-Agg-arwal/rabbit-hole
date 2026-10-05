@@ -1,0 +1,2 @@
+await import('./bootstrap-clean.js');
+import('./enrichment-backfill2.js').catch(e=>console.error(`[enrich] worker import failed: ${e.stack||e.message}`));
